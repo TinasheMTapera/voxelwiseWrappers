@@ -142,7 +142,7 @@ setwd(OutDir)
 
 if (!skipFourD) {
   print("Merging images and saving out a fourd image")
-  subjList <- as.character(subjData[,grep(namePaths, names(subjData))])
+  subjList <- subjData[[namePaths]]
   length.subj <- length(subjList)
   k <- splits
   break.subj <- ceiling(length.subj / k)
