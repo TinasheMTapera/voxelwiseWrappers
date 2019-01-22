@@ -17,17 +17,17 @@ option_list = list(
   make_option(c("-c", "--covariates"), action="store", default=NA, type='character',
               help="Full path to RDS covariate file."),
   make_option(c("-o", "--output"), action="store", default=NA, type='character',
-              help="Full path to output directory"), 
+              help="Full path to output directory"),
   make_option(c("-p", "--imagepaths"), action="store", default=NA, type='character',
-              help="Name of the variable in the covariate file that contains the path to the images to be analyzed"), 
+              help="Name of the variable in the covariate file that contains the path to the images to be analyzed"),
   make_option(c("-m", "--mask"), action="store", default=NA, type='character',
-              help="Full path to mask"), 
+              help="Full path to mask"),
   make_option(c("-s", "--smoothing"), action="store", default=NA, type='numeric',
-              help="The smoothing in sigmas required for the fourd image. Please write in 0 if no smoothing is wanted"), 
+              help="The smoothing in sigmas required for the fourd image. Please write in 0 if no smoothing is wanted"),
   make_option(c("-i", "--inclusion"), action="store", default=NA, type='character',
-              help="Name of inclusion variable on dataset. By default 1 means include. This will subset your rds file"), 
+              help="Name of inclusion variable on dataset. By default 1 means include. This will subset your rds file"),
   make_option(c("-u", "--subjId"), action="store", default=NA, type='character',
-              help="subjID name on the covariates dataset"), 
+              help="subjID name on the covariates dataset"),
   make_option(c("-f", "--formula"), action="store", default=NA, type='character',
               help="Formula for covariates to be used, should only include the right hand side of the formula.
               Example: ~ stai_stai_tr+sex+s(age)+s(age,by=sex)"),
@@ -146,16 +146,7 @@ if (!skipFourD) {
   length.subj <- length(subjList)
   k <- splits
   break.subj <- ceiling(length.subj / k)
-  
-  if (break.subj == 1) {
-    k  = 1
-    break.subj <- ceiling(dim(imageMat)[2] / k )
-  } else if (break.subj < k ) {
-    k  = break.subj - 1 
-    break.subj <- ceiling(dim(imageMat)[2] / k )
-  }
-  
-  
+    
   subMergeNames <- "foo"
   for (i in 1:k) {
     if (i == k) {
@@ -168,20 +159,20 @@ if (!skipFourD) {
       subMergeNames <- c(subMergeNames, out)
     }
   }
-  
+
   subMergeNames <- subMergeNames[-1]
   fslmerge(subMergeNames, direction="t", outfile="fourd.nii.gz")
-  
-  
+
+
   system('rm -f fourd_*.nii.gz')
-  
+
   if (smooth > 0) {
     fslsmooth("fourd.nii.gz", sigma = smooth, outfile="fourd.nii.gz")
   } else {
     print("No smoothing done")
   }
-  
-  
+
+
 } else {
   print("Skipping fourd image creation; Script will looking for file names fourd.nii.gz under first level directory")
 }
@@ -260,27 +251,27 @@ imageIn<-readNIfTI(imageName)
 
 ###Time Series to Matrix Using oro.nifti
 ts2matrix <- function(image, mask) {
-  
+
   label <- sort(as.numeric(unique(matrix(mask@.Data))))
-  
+
   if (length(label) == 2 && label[1] == 0 && label[2] == 1) {
     if (length(dim(image@.Data)) == 3 | dim(image@.Data)[4] == 1) {
       vector <- image@.Data[mask@.Data == 1]
       gc()
       return(vector)
-      
+
     } else {
       temp <- matrix(image@.Data)[mask@.Data == 1]
       dim(temp) <- c(sum(mask@.Data), dim(image@.Data)[length(dim(image@.Data))])
       temp <- t(temp)
-      
+
       temp <- as.data.frame(temp)
       names <- base::lapply(1:dim(temp)[2], function(x) { return(paste0("voxel",x))})
       names(temp) <- names
       gc()
       return(temp)
     }
-    
+
   } else {
     gc()
     stop("Mask Image is not Binary")
@@ -313,153 +304,153 @@ if (length.voxel == 1) {
   splits = 1
   length.voxel <- ceiling(dim(imageMat)[2] / splits)
 } else if (length.voxel < splits) {
-  splits = length.voxel - 1 
+  splits = length.voxel - 1
   length.voxel <- ceiling(dim(imageMat)[2] / splits)
 }
 
 
 setwd(outsubDir)
 
-#If statement to create or not create residual 4D image. 
+#If statement to create or not create residual 4D image.
 if (!residualMap) {
-  
-  # We create a list of formulas for each voxel in our data. 
+
+  # We create a list of formulas for each voxel in our data.
   # Each element in the list will have formula with a different voxel as the dependent variable
   print("Running Test Model")
-  
-  #Case without residual 
+
+  #Case without residual
   #Running Test Model
   m <- mclapply(1:5, function(x) {as.formula(paste(paste0("imageMat[,",x,"]"), covsFormula, sep=""))}, mc.cores = ncores)
   test <- gam(formula = m[[1]], data=subjData, method="REML")
-  
-  
+
+
   model <- mclapply(m, function(x) {
     foo <- summary(gam(formula = x, data=subjData, method="REML"))
     return(rbind(foo$p.table,foo$s.table))
   }, mc.cores = ncores)
-  
-  
-  
+
+
+
   #Running all models
   print("Test Models Done; Running Parallel Models")
   for (k in 1:(splits)) {
-    
+
     if (k == splits) {
       if ((6 + (k-1)*length.voxel) <  dim(imageMat)[2]) {
-      m <- mclapply((6 + (k-1)*length.voxel):dim(imageMat)[2], function(x) {as.formula(paste(paste0("imageMat[,",x,"]"), covsFormula, sep=""))}, mc.cores = ncores) 
+      m <- mclapply((6 + (k-1)*length.voxel):dim(imageMat)[2], function(x) {as.formula(paste(paste0("imageMat[,",x,"]"), covsFormula, sep=""))}, mc.cores = ncores)
       }
     } else {
-      m <- mclapply((6 + (k-1)*length.voxel):(5 + (k)*length.voxel), function(x) {as.formula(paste(paste0("imageMat[,",x,"]"), covsFormula, sep=""))}, mc.cores = ncores)  
+      m <- mclapply((6 + (k-1)*length.voxel):(5 + (k)*length.voxel), function(x) {as.formula(paste(paste0("imageMat[,",x,"]"), covsFormula, sep=""))}, mc.cores = ncores)
     }
-    
+
     model.temp <- mclapply(m, function(x) {
       foo <- summary(gam(formula = x, data=subjData, method="REML"))
       return(rbind(foo$p.table,foo$s.table))
     }, mc.cores = ncores)
-    
+
     model <- c(model, model.temp)
-    
+
     percent <- (k / splits) * 100
     print(paste0(percent, "% of voxels done"))
   }
-  
+
   loopTime<-proc.time()-timeOn
-  
-  
+
+
   print("Models are done")
   print(loopTime/60)
-  
+
 } else {
-  
+
   #Case to output Residual
   print("Working on test models; will generate residual timeseries")
-  
+
   #Running Test model
   m <- mclapply(1:5, function(x) {as.formula(paste(paste0("imageMat[,",x,"]"), covsFormula, sep=""))}, mc.cores = ncores)
   test <- gam(formula = m[[1]], data=subjData, method="REML")
-  
-  
+
+
   model <- mclapply(m, function(x) {
     foo <- summary(gam(formula = x, data=subjData, method="REML"))
     residualVector <- gam(formula = x, data=subjData, method="REML")$residuals
-    
+
     return(list(rbind(foo$p.table,foo$s.table), residualVector))
   }, mc.cores = ncores)
-  
-  
+
+
   print("Test Models Done; Running Parallel Models")
-  
-  #Running all models 
+
+  #Running all models
   for (k in 1:(splits)) {
-    
+
     if (k == splits) {
       if ((6 + (k-1)*length.voxel) <  dim(imageMat)[2]) {
-      m <- mclapply((6 + (k-1)*length.voxel):dim(imageMat)[2], function(x) {as.formula(paste(paste0("imageMat[,",x,"]"), covsFormula, sep=""))}, mc.cores = ncores)  
+      m <- mclapply((6 + (k-1)*length.voxel):dim(imageMat)[2], function(x) {as.formula(paste(paste0("imageMat[,",x,"]"), covsFormula, sep=""))}, mc.cores = ncores)
       }
     } else {
-      m <- mclapply((6 + (k-1)*length.voxel):(5 + (k)*length.voxel), function(x) {as.formula(paste(paste0("imageMat[,",x,"]"), covsFormula, sep=""))}, mc.cores = ncores)  
+      m <- mclapply((6 + (k-1)*length.voxel):(5 + (k)*length.voxel), function(x) {as.formula(paste(paste0("imageMat[,",x,"]"), covsFormula, sep=""))}, mc.cores = ncores)
     }
-    
+
     model.temp <- mclapply(m, function(x) {
       foo <- summary(gam(formula = x, data=subjData, method="REML"))
       residualVector <- gam(formula = x, data=subjData, method="REML")$residuals
-      
+
       return(list(rbind(foo$p.table,foo$s.table), residualVector))
     }, mc.cores = ncores)
-    
+
     model <- c(model, model.temp)
-    
+
     percent <- (k / splits) * 100
     print(paste0(percent, "% of voxels done"))
   }
-  
-  
+
+
   ##Remove tsmatrix
   dimMat <- dim(imageMat)
   rm(imageMat)
   gc()
-  
+
   #Generate tsresiduals
   residualList <- mclapply(model, function(x) {
     return(x[[2]])
   }, mc.cores = ncores)
-  
+
   #Generate tsresiduals
   residualMat <- mcmapply(function(x) {
     return(x)
   }, residualList, mc.cores = ncores, SIMPLIFY = TRUE)
-  
+
   rm(residualList)
   gc()
-  
+
   #Save only parameter tables under models
   model <- mclapply(model, function(x) {
     return(x[[1]])
   }, mc.cores = ncores)
-  
+
   loopTime<-proc.time()-timeOn
-  
+
   print("Models are done")
   print(loopTime/60)
-  
+
   print("Generating Residual timeseries")
-  
+
   ### Create output
   residualMask <- mask
   residualMask <- residualMask@.Data
-  
+
   #remove image in for memorize optimization purposes
   dataTypeIn <- datatype(imageIn)
   dimPixIn <- pixdim(imageIn)
   rm(imageIn)
   gc()
-  
+
   Residualnames <- "temp"
   subj.split <- ceiling(dim(residualMat)[1] / splits)
-  
+
   for (k in 1:(splits)) {
 
-    
+
     ##Output Percentages
     if (k == splits) {
       seq <- (1 + (k-1)*subj.split):(dim(residualMat)[1])
@@ -468,33 +459,33 @@ if (!residualMap) {
       seq <- (1 + (k-1)*subj.split):(k*subj.split)
       print(paste0(seq[length(seq)]*100/dim(residualMat)[1],"%"))
     }
-    
+
     #generate 4d residual image
     residuals <- mcmapply(function(x) {
-      residualMask[mask@.Data==1] <- residualMat[x,] 
+      residualMask[mask@.Data==1] <- residualMat[x,]
       return(residualMask)
     }, seq, SIMPLIFY = "array", mc.cores = ncores, mc.preschedule=F)
-    
-    #Write it out 
+
+    #Write it out
     residualNii <- nifti(residuals, datatype=dataTypeIn, pixdim=dimPixIn)
-    
+
     rm(residuals)
     gc()
-    
+
     writeNIfTI2(residualNii,paste0("gam_residualMap_", k))
     Residualnames <- c(Residualnames, paste0("gam_residualMap_", k,".nii.gz"))
-    
-   
-    
+
+
+
   }
-  
+
   Residualnames <- Residualnames[-1]
   ls()
   fslmerge(Residualnames, direction="t", outfile="gam_residualMap.nii.gz")
   for (i in Residualnames) {
     system(paste0("rm -f ",i))
   }
-  
+
   print("DONE: Residual timeseries")
 }
 
@@ -506,38 +497,38 @@ if (!residualMap) {
 
 
 for (j in 1:dim(model[[1]])[1]) {
-  
+
   variable <- rownames(model[[1]])[j]
-  
+
   if (grepl("s(", variable, fixed=T)) {
-    
+
     for(i in 1:length(model)){
       pOut[i,1]<- model[[i]][which(rownames(model[[i]]) == variable),4]
       zOut[i,1]<- qnorm((model[[i]][which(rownames(model[[i]]) == variable),4] / 2), lower.tail=F)
     }
-    
+
     pOutImage<-mask
     zOutImage<-mask
-    
+
     pOutImage@.Data[mask==1@.Data]<-pOut
     zOutImage@.Data[mask==1@.Data]<-zOut
-    
+
     pAdjustedOutImage<-mask
     pAdjustedOut <- stats::p.adjust(pOut, method=pAdjustMethod)
     pAdjustedOutImage@.Data[mask==1@.Data]<-pAdjustedOut
-    
+
     var <- gsub("\\(", "", variable)
     var <- gsub("\\)", "", var)
     var <- gsub(",", "", var)
     var <- gsub("=", "", var)
     var <- gsub("\\*","and",var)
     var <- gsub(":","and",var)
-    
-    
+
+
     writeNIfTI(pOutImage,paste0("gamP_",var))
     writeNIfTI(zOutImage,paste0("gamZ_",var))
     if (pAdjustMethod != "none") {
-      writeNIfTI(pAdjustedOutImage,paste0("gamPadjusted_",pAdjustMethod, "_",var)) 
+      writeNIfTI(pAdjustedOutImage,paste0("gamPadjusted_",pAdjustMethod, "_",var))
     }
   }
   else {
@@ -546,31 +537,31 @@ for (j in 1:dim(model[[1]])[1]) {
       zOut[i,1]<-sign(model[[i]][which(rownames(model[[i]]) == variable),3])*qnorm((model[[i]][which(rownames(model[[i]]) == variable),4] / 2), lower.tail=F)
       tOut[i,1]<-model[[i]][which(rownames(model[[i]]) == variable),3]
     }
-    
+
     pOutImage<-mask
     zOutImage<-mask
     tOutImage<-mask
-    
+
     pOutImage@.Data[mask==1@.Data]<-pOut
     zOutImage@.Data[mask==1@.Data]<-zOut
     tOutImage@.Data[mask==1@.Data]<-tOut
-    
+
     pAdjustedOutImage<-mask
     pAdjustedOut <- stats::p.adjust(pOut, method=pAdjustMethod)
     pAdjustedOutImage@.Data[mask==1@.Data]<-pAdjustedOut
-    
+
     var <- gsub("\\(", "", variable)
     var <- gsub("\\)", "", var)
     var <- gsub("\\*","and",var)
     var <- gsub(":","and",var)
-    
+
     writeNIfTI(pOutImage,paste0("gamP_",var))
     writeNIfTI(zOutImage,paste0("gamZ_",var))
     writeNIfTI(tOutImage,paste0("gamT_",var))
     if (pAdjustMethod != "none") {
-      writeNIfTI(pAdjustedOutImage,paste0("gamPadjusted_",pAdjustMethod, "_",var)) 
+      writeNIfTI(pAdjustedOutImage,paste0("gamPadjusted_",pAdjustMethod, "_",var))
     }
-    
+
   }
 }
 
