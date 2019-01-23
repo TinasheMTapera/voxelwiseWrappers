@@ -69,6 +69,7 @@ print("#########################################################################
 
 print("Loading Libraries")
 
+suppressMessages(require(ANTsR))
 suppressMessages(require(ggplot2))
 suppressMessages(require(base))
 suppressMessages(require(reshape2))
@@ -123,8 +124,6 @@ subjData<-readRDS(subjDataName) ##Read Data
 subset <- which(subjData[inclusionName] == 1) ##Find subset for analysis
 subjData <- subjData[subset, ] #subset data
 
-
-
 ##############################################################################
 ################    Create Analysis Directory                  ###############
 ##############################################################################
@@ -134,53 +133,6 @@ print("Creating Analysis Directory")
 OutDir <- paste0(OutDirRoot, "/n",dim(subjData)[1],"_",namePaths,"_",inclusionName,"_smooth",as.character(smooth))
 dir.create(OutDir)
 setwd(OutDir)
-
-##############################################################################
-################     Create and output fourd image             ###############
-##############################################################################
-
-
-if (!skipFourD) {
-  print("Merging images and saving out a fourd image")
-  subjList <- subjData[[namePaths]]
-  length.subj <- length(subjList)
-  k <- splits
-  break.subj <- ceiling(length.subj / k)
-    
-  subMergeNames <- "foo"
-  for (i in 1:k) {
-    if (i == k) {
-      out <- paste0("fourd_",i,".nii.gz")
-      fslmerge(subjList[(1 + (i-1)*break.subj):length.subj], direction="t", outfile=out, drop_dim=F)
-      subMergeNames <- c(subMergeNames, out)
-    } else {
-      out <- paste0("fourd_",i,".nii.gz")
-      fslmerge(subjList[(1 + (i-1)*break.subj):((i)*break.subj)], direction="t", outfile=out, drop_dim=F)
-      subMergeNames <- c(subMergeNames, out)
-    }
-  }
-
-  subMergeNames <- subMergeNames[-1]
-  fslmerge(subMergeNames, direction="t", outfile="fourd.nii.gz")
-
-
-  system('rm -f fourd_*.nii.gz')
-
-  if (smooth > 0) {
-    fslsmooth("fourd.nii.gz", sigma = smooth, outfile="fourd.nii.gz")
-  } else {
-    print("No smoothing done")
-  }
-
-
-} else {
-  print("Skipping fourd image creation; Script will looking for file names fourd.nii.gz under first level directory")
-}
-
-
-system(paste0("scp ", maskName," ",OutDir, "/mask.nii.gz"), wait=T)
-print("mask succesfully copied")
-
 
 ##############################################################################
 ################            Output summary files               ###############
@@ -225,6 +177,7 @@ system(paste('rm -f', file.path(outsubDir, '*')))
 ##############################################################################
 system( paste0("echo Arguments are: >> ", outsubDir,"/logs.txt"))
 system( paste0("echo Covariates file is: ", subjDataName,">> ", outsubDir,"/logs.txt"))
+system( paste0("echo Formula is: ", covsFormula,">> ", outsubDir,"/logs.txt"))
 system( paste0("echo Output directory is: ", OutDir,">> ", outsubDir,"/logs.txt"))
 system( paste0("echo Path name variable in covarites file is: ", namePaths,">> ", outsubDir,"/logs.txt"))
 system( paste0("echo Mask path is: ", maskName,">> ", outsubDir,"/logs.txt"))
@@ -241,48 +194,13 @@ system(paste('rm -f', file.path(logDir, '*')))
 ##############################################################################
 ################                   Load data                   ###############
 ##############################################################################
-
+system(paste0("scp ", maskName," ",OutDir, "/mask.nii.gz"), wait=T)
 maskName <- paste0(OutDir,"/mask.nii.gz")
-imageName <- paste0(OutDir,"/fourd.nii.gz")
-
-
 mask<-readNIfTI(maskName)
-imageIn<-readNIfTI(imageName)
+imageList <- subjData[[namePaths]]
+imageMat = imagesToMatrix(imageList, mask)
 
-###Time Series to Matrix Using oro.nifti
-ts2matrix <- function(image, mask) {
-
-  label <- sort(as.numeric(unique(matrix(mask@.Data))))
-
-  if (length(label) == 2 && label[1] == 0 && label[2] == 1) {
-    if (length(dim(image@.Data)) == 3 | dim(image@.Data)[4] == 1) {
-      vector <- image@.Data[mask@.Data == 1]
-      gc()
-      return(vector)
-
-    } else {
-      temp <- matrix(image@.Data)[mask@.Data == 1]
-      dim(temp) <- c(sum(mask@.Data), dim(image@.Data)[length(dim(image@.Data))])
-      temp <- t(temp)
-
-      temp <- as.data.frame(temp)
-      names <- base::lapply(1:dim(temp)[2], function(x) { return(paste0("voxel",x))})
-      names(temp) <- names
-      gc()
-      return(temp)
-    }
-
-  } else {
-    gc()
-    stop("Mask Image is not Binary")
-  }
-}
-
-
-
-imageMat<-ts2matrix(imageIn,mask)
-
-print("Fourd image and mask has been loaded")
+print("Images and mask have been loaded")
 
 ##############################################################################
 ################           Preallocate output                  ###############
@@ -328,7 +246,6 @@ if (!residualMap) {
     foo <- summary(gam(formula = x, data=subjData, method="REML"))
     return(rbind(foo$p.table,foo$s.table))
   }, mc.cores = ncores)
-
 
 
   #Running all models
