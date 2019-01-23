@@ -177,7 +177,7 @@ system(paste('rm -f', file.path(outsubDir, '*')))
 ##############################################################################
 system( paste0("echo Arguments are: >> ", outsubDir,"/logs.txt"))
 system( paste0("echo Covariates file is: ", subjDataName,">> ", outsubDir,"/logs.txt"))
-system( paste0("echo Formula is: ", covsFormula,">> ", outsubDir,"/logs.txt"))
+system( paste("echo Formula is:", covsFormula,">> ", outsubDir,"/logs.txt"))
 system( paste0("echo Output directory is: ", OutDir,">> ", outsubDir,"/logs.txt"))
 system( paste0("echo Path name variable in covarites file is: ", namePaths,">> ", outsubDir,"/logs.txt"))
 system( paste0("echo Mask path is: ", maskName,">> ", outsubDir,"/logs.txt"))
@@ -186,7 +186,6 @@ system( paste0("echo Inclusion variable name is: ", inclusionName,">> ", outsubD
 system( paste0("echo ID variable name is: ", subjID,">> ", outsubDir,"/logs.txt"))
 system( paste0("echo Formula for fixed effects is: ", outName,">> ", outsubDir,"/logs.txt"))
 system( paste0("echo Number of cores is: ", ncores," >> ", outsubDir,"/logs.txt"))
-
 
 ###cleanup logdir
 system(paste('rm -f', file.path(logDir, '*')))
