@@ -131,7 +131,7 @@ subjData <- subjData[subset, ] #subset data
 
 print("Creating Analysis Directory")
 OutDir <- paste0(OutDirRoot, "/n",dim(subjData)[1],"_",namePaths,"_",inclusionName,"_smooth",as.character(smooth))
-dir.create(OutDir)
+dir.create(OutDir, recursive = TRUE)
 setwd(OutDir)
 
 ##############################################################################
