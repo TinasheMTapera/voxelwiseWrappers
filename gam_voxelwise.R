@@ -193,6 +193,8 @@ system(paste('rm -f', file.path(logDir, '*')))
 ##############################################################################
 ################                   Load data                   ###############
 ##############################################################################
+print("Loading images and mask")
+
 system(paste0("scp ", maskName," ",OutDir, "/mask.nii.gz"), wait=T)
 maskName <- paste0(OutDir,"/mask.nii.gz")
 mask<-readNIfTI(maskName)
